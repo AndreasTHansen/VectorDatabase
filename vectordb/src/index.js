@@ -1,17 +1,26 @@
 import weaviate from 'weaviate-ts-client'
-import fs from 'fs';
+import * as fs from 'fs';
 
 const client = weaviate.client({
     scheme: 'http',
     host: 'localhost:8080',
 });
 
+/*
+//Delete Class
+const ress = await client.schema
+    .classDeleter()
+    .withClassName('Animals1')
+    .do();
+console.log(JSON.stringify(ress));
+*/
+
 const schemaRes = await client.schema.getter().do();
 
 console.log(schemaRes)
 
 const schemaConfig = {
-    'class': 'Animal',
+    'class': 'Animals1',
     'vectorizer': 'img2vec-neural',
     'vectorIndexType': 'hnsw',
     'moduleConfig': {
@@ -39,9 +48,6 @@ await client.schema
     .do();
 
 
-
-
-
   const imageFilenames = [
     'ape1.jpg',
     'ape2.jpg',
@@ -57,7 +63,7 @@ await client.schema
   async function uploadImages() {
 
     for (const filename of imageFilenames) {
-      const filepath = `vectordb/src/img/${filename}`;
+      const filepath = `./src/img/${filename}`;
   
       try {
         const img = fs.readFileSync(filepath); // Read the image file
@@ -66,7 +72,7 @@ await client.schema
         const animalType = filename.split('.')[0]; // Extract the animal type from the filename
   
         await client.data.creator()
-          .withClassName('Animal')
+          .withClassName('Animals1')
           .withProperties({
             image: b64,
             text: `${animalType} image`
@@ -78,9 +84,26 @@ await client.schema
         console.error(`Error uploading ${filename}:`, error);
       }
     }
-  
-    // Close the client or perform any necessary cleanup
-  }
+    }
   
   // Call the function to start the image upload process
   uploadImages();
+  
+
+
+const test = Buffer.from( fs.readFileSync('./src/test.jpg') ).toString('base64');
+
+const resImage = await client.graphql.get()
+  .withClassName('Animals1')
+  .withFields(['image'])
+  .withNearImage({ image: test })
+  .withLimit(1)
+  .do();
+
+// Write result to filesystem
+const result = resImage.data.Get.Animals1[0].image;
+writeFileSync('./result.jpg', result, 'base64');
+
+
+
+
